@@ -15,9 +15,9 @@ There are multiple ways to install this package into your project:
 using Timing;
 using UnityEngine;
 
-public class Foo : MonoBehaviour
+public class FooBar : MonoBehaviour
 {
-    public void Bar()
+    public void Start()
     {
         Delay.Create(1f, () => Debug.Log("I will be executed after 1 second."));
         
