@@ -21,7 +21,7 @@ public class FooBar : MonoBehaviour
     {
         Delay.Create(1f, () => Debug.Log("I will be executed after 1 second."));
         
-        Delay.WaitUntil(() => Time.time >= 5, () => Debug.Log("I will wait until the provided condition is true."));
+        Delay.WaitUntil(() => Time.time >= 5f, () => Debug.Log("I will wait until the provided condition is true."));
     }
 }
 ```
