@@ -1,0 +1,10 @@
+{
+  "author": "Sandro Figo (https://sandrofigo.com)",
+  "description": "Simple delay class to execute code after a certain amount of time",
+  "displayName": "Delay",
+  "license": "Unlicense",
+  "name": "com.sandrofigo.delay-unity3d",
+  "version": "1.0.0",
+  "dependencies": {
+  }
+}
