@@ -1,5 +1,5 @@
 # Delay
-Simple delay class to execute code after a certain amount of time in Unity
+Simple delay class to execute code after a certain amount of time in Unity.
 
 [![openupm](https://img.shields.io/npm/v/com.sandrofigo.delay-unity3d?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.sandrofigo.delay-unity3d/)
 
