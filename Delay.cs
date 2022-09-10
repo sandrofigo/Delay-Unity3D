@@ -74,41 +74,41 @@ namespace Timing
         /// <summary>
         /// Executes an action after a given delay.
         /// </summary>
-        public static void Create(float delay, Action action, bool ignoreTimeScale = false)
+        public static Coroutine Create(float delay, Action action, bool ignoreTimeScale = false)
         {
-            CreateInternal(delay, action, ignoreTimeScale, 0);
+            return CreateInternal(delay, action, ignoreTimeScale, 0);
         }
 
-        private static void CreateInternal(float delay, Action action, bool ignoreTimeScale, int framesToSkip)
+        private static Coroutine CreateInternal(float delay, Action action, bool ignoreTimeScale, int framesToSkip)
         {
             if (delay == 0 && framesToSkip <= 0)
             {
                 action.Invoke();
-                return;
+                return null;
             }
 
-            Instance.StartCoroutine(DelayCoroutine(delay, action, ignoreTimeScale, framesToSkip));
+            return Instance.StartCoroutine(DelayCoroutine(delay, action, ignoreTimeScale, framesToSkip));
         }
 
         /// <summary>
         /// Skips a frame and then executes the given action.
         /// </summary>
-        public static void SkipFrame(Action onNextFrame)
+        public static Coroutine SkipFrame(Action onNextFrame)
         {
-            CreateInternal(0, onNextFrame, true, 1);
+            return CreateInternal(0, onNextFrame, true, 1);
         }
 
         /// <summary>
         /// Skips a number of frame and then executes the given action.
         /// </summary>
-        public static void SkipFrames(int framesToSkip, Action onNextFrame)
+        public static Coroutine SkipFrames(int framesToSkip, Action onNextFrame)
         {
-            CreateInternal(0, onNextFrame, true, framesToSkip);
+            return CreateInternal(0, onNextFrame, true, framesToSkip);
         }
 
-        public static void WaitUntil(Func<bool> condition, Action action, float timeout = -1, bool ignoreTimeScale = false)
+        public static Coroutine WaitUntil(Func<bool> condition, Action action, float timeout = -1, bool ignoreTimeScale = false)
         {
-            Instance.StartCoroutine(WaitCoroutine(condition, action, timeout, ignoreTimeScale));
+            return Instance.StartCoroutine(WaitCoroutine(condition, action, timeout, ignoreTimeScale));
         }
 
         /// <summary>
