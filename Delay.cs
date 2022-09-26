@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using UnityEngine;
 
@@ -49,8 +49,11 @@ namespace Timing
             action.Invoke();
         }
 
-        private static IEnumerator WaitCoroutine(Func<bool> condition, Action action, float timeout = -1, bool ignoreTimeScale = false)
+        private static IEnumerator WaitCoroutine(Func<bool> condition, Action action, float timeout = -1, bool ignoreTimeScale = false, bool skipEvaluationForFirstFrame = false)
         {
+            if(skipEvaluationForFirstFrame)
+                yield return null;
+
             float elapsedTime = 0;
             while (!condition())
             {
@@ -108,7 +111,13 @@ namespace Timing
 
         public static Coroutine WaitUntil(Func<bool> condition, Action action, float timeout = -1, bool ignoreTimeScale = false)
         {
-            return Instance.StartCoroutine(WaitCoroutine(condition, action, timeout, ignoreTimeScale));
+            if(condition()) //TODO: unit test e.g. null
+            {
+                action.Invoke();
+                return null;
+            }
+
+            return Instance.StartCoroutine(WaitCoroutine(condition, action, timeout, ignoreTimeScale, true));
         }
 
         /// <summary>
