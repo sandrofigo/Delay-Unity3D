@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using UnityEngine;
 
@@ -84,7 +84,7 @@ namespace Timing
 
         private static Coroutine CreateInternal(float delay, Action action, bool ignoreTimeScale, int framesToSkip)
         {
-            if (delay == 0 && framesToSkip <= 0)
+            if (delay <= 0 && framesToSkip <= 0)
             {
                 action.Invoke();
                 return null;
