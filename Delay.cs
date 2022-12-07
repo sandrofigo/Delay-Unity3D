@@ -66,7 +66,7 @@ namespace Timing
                 coroutine = DelayCoroutine(delay, action, ignoreTimeScale, framesToSkip)
             };
 
-            DelayMonoBehaviour.Instance.StartCoroutine(d.coroutine);
+            DelayMonoBehaviour.StartDelay(d.coroutine);
 
             return d;
         }
@@ -108,7 +108,8 @@ namespace Timing
                 coroutine = WaitCoroutine(condition, action, timeout, ignoreTimeScale, true)
             };
 
-            DelayMonoBehaviour.Instance.StartCoroutine(d.coroutine);
+            if (!DelayMonoBehaviour.StartDelay(d.coroutine))
+                return null;
 
             return d;
         }
@@ -126,7 +127,7 @@ namespace Timing
         /// </summary>
         public void Stop()
         {
-            DelayMonoBehaviour.Instance.StopCoroutine(coroutine);
+            DelayMonoBehaviour.StopDelay(coroutine);
         }
     }
 
@@ -134,13 +135,21 @@ namespace Timing
     {
         private static DelayMonoBehaviour instance;
 
+        private static bool applicationIsQuitting;
+
         internal static DelayMonoBehaviour Instance
         {
             get
             {
+                if (applicationIsQuitting)
+                {
+                    return null;
+                }
+
                 if (instance == null)
                 {
-                    new GameObject("Delay").AddComponent<DelayMonoBehaviour>();
+                    var obj = new GameObject("Delay").AddComponent<DelayMonoBehaviour>();
+                    DontDestroyOnLoad(obj);
                 }
 
                 return instance;
@@ -157,6 +166,48 @@ namespace Timing
             {
                 Destroy(gameObject);
             }
+        }
+
+        public static bool StartDelay(IEnumerator coroutine)
+        {
+            if (Instance == null)
+                return false;
+
+            Instance.StartDelayInternal(coroutine);
+
+            return true;
+        }
+
+        private void StartDelayInternal(IEnumerator coroutine)
+        {
+            if (applicationIsQuitting)
+                return;
+
+            StartCoroutine(coroutine);
+        }
+
+        public static bool StopDelay(IEnumerator coroutine)
+        {
+            if (Instance == null)
+                return false;
+
+            Instance.StopDelayInternal(coroutine);
+
+            return true;
+        }
+
+        private void StopDelayInternal(IEnumerator coroutine)
+        {
+            if (applicationIsQuitting)
+                return;
+
+            StopCoroutine(coroutine);
+        }
+
+        private void OnDestroy()
+        {
+            applicationIsQuitting = true;
+            StopAllCoroutines();
         }
     }
 }
