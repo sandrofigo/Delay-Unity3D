@@ -4,33 +4,12 @@ using UnityEngine;
 
 namespace Timing
 {
-    public class Delay : MonoBehaviour
+    public sealed class Delay
     {
-        private static Delay instance;
+        private IEnumerator coroutine;
 
-        private static Delay Instance
+        private Delay()
         {
-            get
-            {
-                if (instance == null)
-                {
-                    new GameObject("Delay").AddComponent<Delay>();
-                }
-
-                return instance;
-            }
-        }
-
-        private void Awake()
-        {
-            if (instance == null)
-            {
-                instance = this;
-            }
-            else
-            {
-                Destroy(gameObject);
-            }
         }
 
         private static IEnumerator DelayCoroutine(float delay, Action action, bool ignoreTimeScale, int framesToSkip)
@@ -51,7 +30,7 @@ namespace Timing
 
         private static IEnumerator WaitCoroutine(Func<bool> condition, Action action, float timeout = -1, bool ignoreTimeScale = false, bool skipEvaluationForFirstFrame = false)
         {
-            if(skipEvaluationForFirstFrame)
+            if (skipEvaluationForFirstFrame)
                 yield return null;
 
             float elapsedTime = 0;
@@ -60,9 +39,9 @@ namespace Timing
                 if (timeout >= 0)
                 {
                     if (ignoreTimeScale)
-                        elapsedTime += UnityEngine.Time.unscaledDeltaTime;
+                        elapsedTime += Time.unscaledDeltaTime;
                     else
-                        elapsedTime += UnityEngine.Time.deltaTime;
+                        elapsedTime += Time.deltaTime;
 
                     if (elapsedTime >= timeout)
                         break;
@@ -74,15 +53,7 @@ namespace Timing
             action.Invoke();
         }
 
-        /// <summary>
-        /// Executes an action after a given delay.
-        /// </summary>
-        public static Coroutine Create(float delay, Action action, bool ignoreTimeScale = false)
-        {
-            return CreateInternal(delay, action, ignoreTimeScale, 0);
-        }
-
-        private static Coroutine CreateInternal(float delay, Action action, bool ignoreTimeScale, int framesToSkip)
+        private static Delay CreateInternal(float delay, Action action, bool ignoreTimeScale, int framesToSkip)
         {
             if (delay <= 0 && framesToSkip <= 0)
             {
@@ -90,13 +61,28 @@ namespace Timing
                 return null;
             }
 
-            return Instance.StartCoroutine(DelayCoroutine(delay, action, ignoreTimeScale, framesToSkip));
+            var d = new Delay
+            {
+                coroutine = DelayCoroutine(delay, action, ignoreTimeScale, framesToSkip)
+            };
+
+            DelayMonoBehaviour.Instance.StartCoroutine(d.coroutine);
+
+            return d;
+        }
+
+        /// <summary>
+        /// Executes an action after a given delay.
+        /// </summary>
+        public static Delay Create(float delay, Action action, bool ignoreTimeScale = false)
+        {
+            return CreateInternal(delay, action, ignoreTimeScale, 0);
         }
 
         /// <summary>
         /// Skips a frame and then executes the given action.
         /// </summary>
-        public static Coroutine SkipFrame(Action onNextFrame)
+        public static Delay SkipFrame(Action onNextFrame)
         {
             return CreateInternal(0, onNextFrame, true, 1);
         }
@@ -104,28 +90,73 @@ namespace Timing
         /// <summary>
         /// Skips a number of frame and then executes the given action.
         /// </summary>
-        public static Coroutine SkipFrames(int framesToSkip, Action onNextFrame)
+        public static Delay SkipFrames(int framesToSkip, Action onNextFrame)
         {
             return CreateInternal(0, onNextFrame, true, framesToSkip);
         }
 
-        public static Coroutine WaitUntil(Func<bool> condition, Action action, float timeout = -1, bool ignoreTimeScale = false)
+        public static Delay WaitUntil(Func<bool> condition, Action action, float timeout = -1, bool ignoreTimeScale = false)
         {
-            if(condition()) //TODO: unit test e.g. null
+            if (condition()) //TODO: unit test e.g. null
             {
                 action.Invoke();
                 return null;
             }
 
-            return Instance.StartCoroutine(WaitCoroutine(condition, action, timeout, ignoreTimeScale, true));
+            var d = new Delay
+            {
+                coroutine = WaitCoroutine(condition, action, timeout, ignoreTimeScale, true)
+            };
+
+            DelayMonoBehaviour.Instance.StartCoroutine(d.coroutine);
+
+            return d;
         }
 
         /// <summary>
         /// Cancels all ongoing delays.
         /// </summary>
-        public static void CancelAll()
+        public static void StopAll()
         {
-            Instance.StopAllCoroutines();
+            DelayMonoBehaviour.Instance.StopAllCoroutines();
+        }
+
+        /// <summary>
+        /// Stops the ongoing delay.
+        /// </summary>
+        public void Stop()
+        {
+            DelayMonoBehaviour.Instance.StopCoroutine(coroutine);
+        }
+    }
+
+    internal sealed class DelayMonoBehaviour : MonoBehaviour
+    {
+        private static DelayMonoBehaviour instance;
+
+        internal static DelayMonoBehaviour Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    new GameObject("Delay").AddComponent<DelayMonoBehaviour>();
+                }
+
+                return instance;
+            }
+        }
+
+        private void Awake()
+        {
+            if (instance == null)
+            {
+                instance = this;
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
         }
     }
 }
