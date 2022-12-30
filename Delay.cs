@@ -8,11 +8,18 @@ namespace Timing
     {
         private IEnumerator coroutine;
 
+        /// <summary>
+        /// Indicates if the delay has completed and the provided action was invoked.
+        /// </summary>
+        public bool IsComplete { get; private set; }
+
+        private Action action;
+
         private Delay()
         {
         }
 
-        private static IEnumerator DelayCoroutine(float delay, Action action, bool ignoreTimeScale, int framesToSkip)
+        private static IEnumerator DelayCoroutine(Delay delayReference, float delay, bool ignoreTimeScale, int framesToSkip)
         {
             while (framesToSkip > 1)
             {
@@ -25,10 +32,10 @@ namespace Timing
             else
                 yield return new WaitForSeconds(delay);
 
-            action.Invoke();
+            delayReference.InvokeAction();
         }
 
-        private static IEnumerator WaitCoroutine(Func<bool> condition, Action action, float timeout = -1, bool ignoreTimeScale = false, bool skipEvaluationForFirstFrame = false)
+        private static IEnumerator WaitCoroutine(Delay delayReference, Func<bool> condition, float timeout = -1, bool ignoreTimeScale = false, bool skipEvaluationForFirstFrame = false)
         {
             if (skipEvaluationForFirstFrame)
                 yield return null;
@@ -50,21 +57,33 @@ namespace Timing
                 yield return null;
             }
 
+            delayReference.InvokeAction();
+        }
+
+        private void InvokeAction()
+        {
+            if (IsComplete)
+                return;
+
             action.Invoke();
+
+            IsComplete = true;
         }
 
         private static Delay CreateInternal(float delay, Action action, bool ignoreTimeScale, int framesToSkip)
         {
-            if (delay <= 0 && framesToSkip <= 0)
-            {
-                action.Invoke();
-                return null;
-            }
-
             var d = new Delay
             {
-                coroutine = DelayCoroutine(delay, action, ignoreTimeScale, framesToSkip)
+                action = action
             };
+
+            if (delay <= 0 && framesToSkip <= 0)
+            {
+                d.InvokeAction();
+                return d;
+            }
+
+            d.coroutine = DelayCoroutine(d, delay, ignoreTimeScale, framesToSkip);
 
             DelayMonoBehaviour.StartDelay(d.coroutine);
 
@@ -97,16 +116,18 @@ namespace Timing
 
         public static Delay WaitUntil(Func<bool> condition, Action action, float timeout = -1, bool ignoreTimeScale = false)
         {
-            if (condition()) //TODO: unit test e.g. null
-            {
-                action.Invoke();
-                return null;
-            }
-
             var d = new Delay
             {
-                coroutine = WaitCoroutine(condition, action, timeout, ignoreTimeScale, true)
+                action = action
             };
+
+            if (condition()) //TODO: unit test e.g. null
+            {
+                d.InvokeAction();
+                return d;
+            }
+
+            d.coroutine = WaitCoroutine(d, condition, timeout, ignoreTimeScale, true);
 
             if (!DelayMonoBehaviour.StartDelay(d.coroutine))
                 return null;
@@ -123,11 +144,21 @@ namespace Timing
         }
 
         /// <summary>
-        /// Stops the ongoing delay.
+        /// Stops the ongoing delay, but does not execute the provided action.
         /// </summary>
+        /// <remarks><see cref="IsComplete"/> is not set to TRUE by this method.</remarks>
         public void Stop()
         {
             DelayMonoBehaviour.StopDelay(coroutine);
+        }
+
+        /// <summary>
+        /// Stops the delay and executes the provided action.
+        /// </summary>
+        public void Complete()
+        {
+            Stop();
+            InvokeAction();
         }
     }
 
