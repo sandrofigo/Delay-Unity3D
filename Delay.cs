@@ -13,29 +13,44 @@ namespace Timing
         /// </summary>
         public bool IsComplete { get; private set; }
 
+        /// <summary>
+        /// Indicates if the delay has been paused.
+        /// </summary>
+        public bool IsPaused { get; private set; }
+
         private Action action;
 
         private Delay()
         {
         }
 
-        private static IEnumerator DelayCoroutine(Delay delayReference, float delay, bool ignoreTimeScale, int framesToSkip)
+        private static IEnumerator DelayCoroutine(Delay delay, float delayInSeconds, bool ignoreTimeScale, int framesToSkip)
         {
-            while (framesToSkip > 1)
+            while (framesToSkip > 1) //TODO: check if > 1 is still correct (is coroutine started on next frame by Unity?)
             {
-                framesToSkip--;
+                if (!delay.IsPaused)
+                    framesToSkip--;
+
                 yield return null;
             }
 
-            if (ignoreTimeScale)
-                yield return new WaitForSecondsRealtime(delay);
-            else
-                yield return new WaitForSeconds(delay);
+            while (delayInSeconds > 0)
+            {
+                if (!delay.IsPaused)
+                {
+                    if (ignoreTimeScale)
+                        delayInSeconds -= Time.unscaledDeltaTime;
+                    else
+                        delayInSeconds -= Time.deltaTime;
+                }
 
-            delayReference.InvokeAction();
+                yield return null;
+            }
+
+            delay.InvokeAction();
         }
 
-        private static IEnumerator WaitCoroutine(Delay delayReference, Func<bool> condition, float timeout = -1, bool ignoreTimeScale = false, bool skipEvaluationForFirstFrame = false)
+        private static IEnumerator WaitCoroutine(Delay delay, Func<bool> condition, float timeout = -1, bool ignoreTimeScale = false, bool skipEvaluationForFirstFrame = false)
         {
             if (skipEvaluationForFirstFrame)
                 yield return null;
@@ -57,7 +72,7 @@ namespace Timing
                 yield return null;
             }
 
-            delayReference.InvokeAction();
+            delay.InvokeAction();
         }
 
         private void InvokeAction()
@@ -70,24 +85,32 @@ namespace Timing
             IsComplete = true;
         }
 
-        private static Delay CreateInternal(float delay, Action action, bool ignoreTimeScale, int framesToSkip)
+        private static Delay CreateInternal(float delayInSeconds, Action action, bool ignoreTimeScale, int framesToSkip)
         {
-            var d = new Delay
+            var delay = new Delay
             {
                 action = action
             };
 
-            if (delay <= 0 && framesToSkip <= 0)
+            StartInternal(delay, delayInSeconds, ignoreTimeScale, framesToSkip);
+
+            return delay;
+        }
+
+        private static void StartInternal(Delay delay, float delayInSeconds, bool ignoreTimeScale, int framesToSkip)
+        {
+            if (delay.IsComplete)
+                return;
+
+            if (delayInSeconds <= 0 && framesToSkip <= 0)
             {
-                d.InvokeAction();
-                return d;
+                delay.InvokeAction();
+                return;
             }
 
-            d.coroutine = DelayCoroutine(d, delay, ignoreTimeScale, framesToSkip);
+            delay.coroutine = DelayCoroutine(delay, delayInSeconds, ignoreTimeScale, framesToSkip);
 
-            DelayMonoBehaviour.StartDelay(d.coroutine);
-
-            return d;
+            DelayMonoBehaviour.StartDelay(delay.coroutine);
         }
 
         /// <summary>
@@ -159,6 +182,30 @@ namespace Timing
         {
             Stop();
             InvokeAction();
+        }
+
+        /// <summary>
+        /// Pauses the delay.
+        /// </summary>
+        /// <remarks>If the delay was not completed when <see cref="Pause"/> was called, the action will be executed after <see cref="Resume"/> has been called and once the delay is complete.</remarks>
+        public void Pause()
+        {
+            if (IsPaused)
+                return;
+
+            IsPaused = true;
+        }
+
+        /// <summary>
+        /// Resumes the delay.
+        /// </summary>
+        /// <remarks>The delay will wait the remaining time, before it will execute the provided action.</remarks>
+        public void Resume()
+        {
+            if (!IsPaused)
+                return;
+
+            IsPaused = false;
         }
     }
 
