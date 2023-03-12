@@ -279,7 +279,8 @@ namespace Timing
             if (applicationIsQuitting)
                 return;
 
-            StopCoroutine(coroutine);
+            if (coroutine != null)
+                StopCoroutine(coroutine);
         }
 
         private void OnDestroy()
