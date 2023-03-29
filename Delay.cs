@@ -207,13 +207,23 @@ namespace Timing
 
             IsPaused = false;
         }
+
+        /// <summary>
+        /// Resets the internal state.
+        /// </summary>
+        /// <remarks>Call this once before starting a new delay, if you run subsequent unit tests.</remarks>
+        public static void ResetInternalState()
+        {
+            DelayMonoBehaviour.instance = null;
+            DelayMonoBehaviour.applicationIsQuitting = false;
+        }
     }
 
     internal sealed class DelayMonoBehaviour : MonoBehaviour
     {
-        private static DelayMonoBehaviour instance;
+        internal static DelayMonoBehaviour instance;
 
-        private static bool applicationIsQuitting;
+        internal static bool applicationIsQuitting;
 
         internal static DelayMonoBehaviour Instance
         {
