@@ -166,21 +166,14 @@ namespace Timing
             DelayMonoBehaviour.Instance.StopAllCoroutines();
         }
 
-        /// <summary>
-        /// Stops the ongoing delay, but does not execute the provided action.
-        /// </summary>
-        /// <remarks><see cref="IsComplete"/> is not set to TRUE by this method.</remarks>
-        public void Stop()
+        internal void StopInternal()
         {
             DelayMonoBehaviour.StopDelay(coroutine);
         }
 
-        /// <summary>
-        /// Stops the delay and executes the provided action.
-        /// </summary>
-        public void Complete()
+        internal void CompleteInternal()
         {
-            Stop();
+            StopInternal();
             InvokeAction();
         }
 
@@ -297,6 +290,26 @@ namespace Timing
         {
             applicationIsQuitting = true;
             StopAllCoroutines();
+        }
+    }
+
+    public static class BuiltInDelayExtensions
+    {
+        /// <summary>
+        /// Stops the ongoing delay, but does not execute the provided action.
+        /// </summary>
+        /// <remarks><see cref="Delay.IsComplete"/> is not set to TRUE by this method.</remarks>
+        public static void Stop(this Delay delay)
+        {
+            delay?.StopInternal();
+        }
+
+        /// <summary>
+        /// Stops the delay and executes the provided action.
+        /// </summary>
+        public static void Complete(this Delay delay)
+        {
+            delay?.CompleteInternal();
         }
     }
 }
