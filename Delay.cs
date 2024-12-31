@@ -24,7 +24,7 @@ namespace Timing
         {
         }
 
-        private static IEnumerator DelayCoroutine(Delay delay, float delayInSeconds, bool ignoreTimeScale, int framesToSkip)
+        private static IEnumerator DelayCoroutine(Delay delay, float delayInSeconds, bool ignoreTimeScale, int framesToSkip, Func<float> deltaTimeGetter)
         {
             while (framesToSkip > 1) //TODO: check if > 1 is still correct (is coroutine started on next frame by Unity?)
             {
@@ -40,7 +40,9 @@ namespace Timing
                 {
                     if (ignoreTimeScale)
                         delayInSeconds -= Time.unscaledDeltaTime;
-                    else
+                    else if (deltaTimeGetter != null)
+                        delayInSeconds -= deltaTimeGetter.Invoke();
+                    else 
                         delayInSeconds -= Time.deltaTime;
                 }
 
@@ -85,19 +87,19 @@ namespace Timing
             IsComplete = true;
         }
 
-        private static Delay CreateInternal(float delayInSeconds, Action action, bool ignoreTimeScale, int framesToSkip)
+        private static Delay CreateInternal(float delayInSeconds, Action action, bool ignoreTimeScale, int framesToSkip, Func<float> deltaTimeGetter)
         {
             var delay = new Delay
             {
                 action = action
             };
 
-            StartInternal(delay, delayInSeconds, ignoreTimeScale, framesToSkip);
+            StartInternal(delay, delayInSeconds, ignoreTimeScale, framesToSkip, deltaTimeGetter);
 
             return delay;
         }
 
-        private static void StartInternal(Delay delay, float delayInSeconds, bool ignoreTimeScale, int framesToSkip)
+        private static void StartInternal(Delay delay, float delayInSeconds, bool ignoreTimeScale, int framesToSkip, Func<float> deltaTimeGetter)
         {
             if (delay.IsComplete)
                 return;
@@ -108,7 +110,7 @@ namespace Timing
                 return;
             }
 
-            delay.coroutine = DelayCoroutine(delay, delayInSeconds, ignoreTimeScale, framesToSkip);
+            delay.coroutine = DelayCoroutine(delay, delayInSeconds, ignoreTimeScale, framesToSkip, deltaTimeGetter);
 
             DelayMonoBehaviour.StartDelay(delay.coroutine);
         }
@@ -118,7 +120,12 @@ namespace Timing
         /// </summary>
         public static Delay Create(float delay, Action action, bool ignoreTimeScale = false)
         {
-            return CreateInternal(delay, action, ignoreTimeScale, 0);
+            return CreateInternal(delay, action, ignoreTimeScale, 0, null);
+        }
+        
+        public static Delay Create(float delay, Action action, Func<float> deltaTimeGetter)
+        {
+            return CreateInternal(delay, action, false, 0, deltaTimeGetter);
         }
 
         /// <summary>
@@ -126,7 +133,7 @@ namespace Timing
         /// </summary>
         public static Delay SkipFrame(Action onNextFrame)
         {
-            return CreateInternal(0, onNextFrame, true, 1);
+            return CreateInternal(0, onNextFrame, true, 1, null);
         }
 
         /// <summary>
@@ -134,7 +141,7 @@ namespace Timing
         /// </summary>
         public static Delay SkipFrames(int framesToSkip, Action onNextFrame)
         {
-            return CreateInternal(0, onNextFrame, true, framesToSkip);
+            return CreateInternal(0, onNextFrame, true, framesToSkip, null);
         }
 
         public static Delay WaitUntil(Func<bool> condition, Action action, float timeout = -1, bool ignoreTimeScale = false)
